@@ -1,6 +1,12 @@
 Changes to Apache-DBILogin
 
-1.6 Mon Mon Feb  7 15:57:54 EST 2000
+2.0 Wed Feb 21 14:11:42 EST 2001
+	- removed HTTP_MODPERL_PASSWORD environment
+	- replaced default handler sub with authen sub
+	- added authz handler
+	- deprecated Auth_DBI_authz_command
+
+1.6 Mon Feb  7 15:57:54 EST 2000
 	- removed the test for Apache::DBI as it will only compile inside the modperl box
 
 1.5 Tue Nov 17 14:02:44 EST 1998
