@@ -1,6 +1,8 @@
 The perl module Apache::DBILogin uses Apache mod_perl and the
 DBI/DBD modules to integrate database authentication with Apache.
 
+perldoc ./DBILogin.pm
+
 To build and install it, please run
 
     perl Makefile.PL

@@ -1,13 +1,12 @@
-# $Id: DBILogin.pm,v 1.4 1998/06/09 19:29:49 root Exp $
+# $Id: DBILogin.pm,v 1.5 1998/11/17 19:10:42 jdg117 Exp $
 package Apache::DBILogin;
 use strict;
 use Apache();
 use Apache::Constants qw(OK SERVER_ERROR AUTH_REQUIRED);
 use DBI;
-use HTTPD::UserAdmin();
 use vars qw($VERSION);
 
-$VERSION = '1.4';
+$VERSION = '1.5';
 my(%Config) = (
     'Auth_DBI_data_source' => '',
     'Auth_DBI_authz_command' => '',
@@ -26,6 +25,7 @@ sub handler {
         $attr->{$key} = $val;
     }
     
+    return OK unless $r->is_initial_req;
     return check($r, $attr);
 }
  
@@ -59,7 +59,9 @@ sub check {
     }
            
     $dbh->disconnect;
-    $r->header_in('Modperl_Password',$sent_pwd);
+    $r->header_in('Modperl_Password',$sent_pwd); # deprecated
+    $r->header_in('Modperl_DBILogin_Password',$sent_pwd);
+    $r->header_in('Modperl_DBILogin_data_source',$attr->{data_source});
     return OK;
 }
 1;
@@ -74,13 +76,12 @@ Apache::DBILogin - authenticates via a DBI connection
 
 See the access.conf file and the documentation for Apache::AuthenDBI
 
- #in access.conf
- <Directory /opt/www/root>
+ #in .htaccess
  AuthName MyAuth
  AuthType Basic
  PerlHandler Apache::Registry::handler
  PerlAuthenHandler Apache::DBILogin::handler
- SetHandler perl-script
+ AddHandler perl-script pl
  
  PerlSetVar Auth_DBI_data_source dbi:Oracle:SQLNetAlias
  #PerlSetVar Auth_DBI_authz_command "SET ROLE DBA"
@@ -88,14 +89,16 @@ See the access.conf file and the documentation for Apache::AuthenDBI
  Options Indexes FollowSymLinks ExecCGI
  AllowOverride All
   
- <Limit GET POST>
  allow from all
  require valid-user
  satisfy all
- </Limit>
- </Directory>
 
 =head1 DESCRIPTION
+
+Apache::DBILogin allows authentication against a multi-user database. It is
+intended to facilitate web-based transactions against a database server
+as a particular database user. If you wish authenticate against a passwd
+table instead, please see Edmund Mergl's Apache::AuthenDBI module.
 
 Auth_DBI_authz_command is an optional valid database command, executed via
 the DBI do method. In the above example I take advantage of Oracle roles, a
@@ -103,8 +106,26 @@ set of priviledges which can be assigned to groups of users.
 
 =head1 ENVIRONMENT
 
-Applications may access the clear text password via the environment
-variable B<HTTP_MODPERL_PASSWORD>
+Applications may access the clear text password as well as the data_source
+via the environment variables B<HTTP_MODPERL_DBILOGIN_PASSWORD> and
+B<HTTP_MODPERL_DBILOGIN_DATA_SOURCE>. B<HTTP_MODPERL_PASSWORD> is deprecated.
+
+ #!/usr/bin/perl -wT
+ 
+ use strict;
+ use CGI;
+ use DBI;
+ my $name = $ENV{REMOTE_USER};
+ my $password = $ENV{HTTP_DBILOGIN_PASSWORD};
+ my $data_source = $ENV{HTTP_DBILOGIN_DATA_SOURCE};
+ my $dbh = DBI->connect($data_source, $name, $password)
+ 	or die "$DBI::err: $DBI::errstr\n";
+ ...
+
+=head1 SECURITY
+
+The database user's clear text passwd is made available in the
+server's environment. Do you trust your developers?
 
 =head1 SEE ALSO
 

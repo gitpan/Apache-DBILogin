@@ -1,5 +1,13 @@
 Changes to Apache-DBILogin
 
+1.5 Tue Nov 17 14:02:44 EST 1998
+	- documentation updates
+	- removed HTTPD::UserAdmin prerequisite from Makefile.PL and DBILogin.pm
+	- added environment HTTP_MODPERL_DBILOGIN_PASSWORD, deprecates HTTP_MODPERL_PASSWORD 
+	- added environment HTTP_MODPERL_DBILOGIN_DATA_SOURCE
+	- moved DBILogin.pm to top of source tree and changed MANIFEST
+	- return OK unless first internal request
+
 1.4 Tue Jun  9 15:32:29 EDT 1998
 	- added authorization via DBI do method
 

@@ -5,23 +5,6 @@
 $| = 1;
 my $missing_modules = 0;
 
-print "Checking for HTTPD::UserAdmin......";
-eval {
-    require HTTPD::UserAdmin;
-};
-if ($@) {
-    print " failed\n";
-    $missing_modules++;
-    print <<EOT;
-$@
-The HTTPD::UserAdmin module is needed to parse user information from headers.
-
-EOT
-    sleep(2);  # Don't hurry too much
-} else {
-    print " ok\n";
-}
-
 print "Checking for Apache::DBI......";
 eval {
     require Apache::DBI;
@@ -50,5 +33,5 @@ use ExtUtils::MakeMaker;
 WriteMakefile(
    NAME          => 'Apache::DBILogin',
    DISTNAME      => 'Apache-DBILogin',
-   VERSION_FROM  => 'lib/Apache/DBILogin.pm',
+   VERSION_FROM  => 'DBILogin.pm',
 );
