@@ -29,7 +29,7 @@ BEGIN {
 use DBI;
 use vars qw($VERSION);
 
-$VERSION = '2.01';
+$VERSION = '2.02';
 my(%Config) = (
     'Auth_DBI_data_source' => '',
     'Auth_DBI_authz_command' => '',

@@ -1,5 +1,8 @@
 Changes to Apache-DBILogin
 
+Fri Dec  3 19:06:30 EST 2004
+	- requires mod_perl now in Makefile.PL
+
 2.01 Fri Dec  3 11:56:24 EST 2004
 	- extensive rework of DBILogin.pm for modperl 2.0 support
 	- Makefile.PL now includes DBI as a prereq
