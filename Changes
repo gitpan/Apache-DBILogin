@@ -1,6 +1,9 @@
 Changes to Apache-DBILogin
 
-Fri Dec  3 19:06:30 EST 2004
+2.03 Wed Dec  8 01:36:24 EST 2004
+	- fixed $VERSION, why must it be defined above "use modperl" ?
+
+2.02 Fri Dec  3 19:06:30 EST 2004
 	- requires mod_perl now in Makefile.PL
 
 2.01 Fri Dec  3 11:56:24 EST 2004
