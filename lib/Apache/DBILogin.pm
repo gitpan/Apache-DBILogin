@@ -1,4 +1,4 @@
-# $Id: DBILogin.pm,v 1.3 1997/10/16 18:39:54 jdg117 Exp $
+# $Id: DBILogin.pm,v 1.4 1998/06/09 19:29:49 root Exp $
 package Apache::DBILogin;
 use strict;
 use Apache();
@@ -7,9 +7,10 @@ use DBI;
 use HTTPD::UserAdmin();
 use vars qw($VERSION);
 
-$VERSION = '1.3';
+$VERSION = '1.4';
 my(%Config) = (
     'Auth_DBI_data_source' => '',
+    'Auth_DBI_authz_command' => '',
 );
 my $prefix = "Apache::DBILogin";
 
@@ -42,12 +43,21 @@ sub check {
         return SERVER_ERROR;
     }
 
-    my $dbh = DBI->connect($attr->{data_source},$user,$sent_pwd);
+    my $dbh = DBI->connect($attr->{data_source}, $user, $sent_pwd, { PrintError=>0, RaiseError=>0 });
     unless( defined $dbh ) {
         $r->log_reason("user $user: $DBI::errstr", $r->uri);
         $r->note_basic_auth_failure;
         return AUTH_REQUIRED;
     }
+
+    if ( $attr->{authz_command} ) {
+        unless( defined ($dbh->do($attr->{authz_command})) ) {
+            $r->log_reason("user $user: $DBI::errstr", $r->uri);
+            $r->note_basic_auth_failure;
+            return AUTH_REQUIRED;
+        }
+    }
+           
     $dbh->disconnect;
     $r->header_in('Modperl_Password',$sent_pwd);
     return OK;
@@ -64,8 +74,6 @@ Apache::DBILogin - authenticates via a DBI connection
 
 See the access.conf file and the documentation for Apache::AuthenDBI
 
-=head1 DESCRIPTION
-
  #in access.conf
  <Directory /opt/www/root>
  AuthName MyAuth
@@ -75,6 +83,7 @@ See the access.conf file and the documentation for Apache::AuthenDBI
  SetHandler perl-script
  
  PerlSetVar Auth_DBI_data_source dbi:Oracle:SQLNetAlias
+ #PerlSetVar Auth_DBI_authz_command "SET ROLE DBA"
  
  Options Indexes FollowSymLinks ExecCGI
  AllowOverride All
@@ -86,6 +95,12 @@ See the access.conf file and the documentation for Apache::AuthenDBI
  </Limit>
  </Directory>
 
+=head1 DESCRIPTION
+
+Auth_DBI_authz_command is an optional valid database command, executed via
+the DBI do method. In the above example I take advantage of Oracle roles, a
+set of priviledges which can be assigned to groups of users.
+
 =head1 ENVIRONMENT
 
 Applications may access the clear text password via the environment
@@ -93,7 +108,7 @@ variable B<HTTP_MODPERL_PASSWORD>
 
 =head1 SEE ALSO
 
-mod_perl(1), Apache::DBI(3), and Apache::AuthenDBI(3)
+mod_perl(1), Apache::DBI(3), Apache::AuthenDBI(3), and Apache::AuthzDBI(3)
 
 =head1 AUTHOR
 
