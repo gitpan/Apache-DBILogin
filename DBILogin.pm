@@ -1,12 +1,35 @@
-# $Id: DBILogin.pm,v 1.2 2001/02/21 19:14:47 jdg117 Exp $
 package Apache::DBILogin;
+
 use strict;
-use Apache();
-use Apache::Constants qw(OK SERVER_ERROR AUTH_REQUIRED FORBIDDEN);
+use mod_perl;
+
+# setting the constants to help identify which version of mod_perl
+# is installed
+use constant MP2 => ($mod_perl::VERSION >= 1.99);
+
+# test for the version of mod_perl, and use the appropriate libraries
+BEGIN {
+    if (MP2) {
+        require Apache::Access;
+        require Apache::Connection;
+        require Apache::Const;
+        require Apache::Log;
+        require Apache::RequestRec;
+        require Apache::RequestUtil;
+        require APR::Table;
+        Apache::Const->import(-compile => 'HTTP_FORBIDDEN', 'HTTP_UNAUTHORIZED',
+                                          'HTTP_INTERNAL_SERVER_ERROR', 'OK');
+    } else {
+        require Apache::Constants;
+        Apache::Constants->import('HTTP_FORBIDDEN', 'HTTP_UNAUTHORIZED',
+                                  'HTTP_INTERNAL_SERVER_ERROR', 'OK');
+    }
+}
+
 use DBI;
 use vars qw($VERSION);
 
-$VERSION = '2.0';
+$VERSION = '2.01';
 my(%Config) = (
     'Auth_DBI_data_source' => '',
     'Auth_DBI_authz_command' => '',
@@ -16,7 +39,8 @@ my $prefix = "Apache::DBILogin";
 
 sub authen {
     my $r = shift @_;
-    return OK unless $r->is_initial_req;
+    return (MP2 ? Apache::OK : Apache::Constants::OK)
+        unless $r->is_initial_req;
 
     my($key,$val);
     my $attr = {};
@@ -35,18 +59,18 @@ sub test_authen {
     my ($res, $sent_pwd) = $r->get_basic_auth_pw;
     return $res if ( $res ); #decline if not Basic
 
-    my $user = $r->connection->user;
+    my $user = MP2 ? $r->user : $r->connection->user;
 
     unless ( $attr->{data_source} ) {
         $r->log_reason("$prefix is missing the source parameter for database connect", $r->uri);
-        return SERVER_ERROR;
+        return MP2 ? Apache::HTTP_INTERNAL_SERVER_ERROR : Apache::Constants::HTTP_INTERNAL_SERVER_ERROR;
     }
 
     my $dbh = DBI->connect($attr->{data_source}, $user, $sent_pwd, { AutoCommit=>0, RaiseError=>0 });
     unless( defined $dbh ) {
         $r->log_reason("user $user: $DBI::errstr", $r->uri);
         $r->note_basic_auth_failure;
-        return AUTH_REQUIRED;
+        return MP2 ? Apache::HTTP_UNAUTHORIZED : Apache::Constants::HTTP_UNAUTHORIZED;
     }
 
     # to be removed in next version
@@ -54,21 +78,23 @@ sub test_authen {
         unless( defined ($dbh->do($attr->{authz_command})) ) {
             $r->log_reason("user $user: $DBI::errstr", $r->uri);
             $r->note_basic_auth_failure;
-            return AUTH_REQUIRED;
+            return MP2 ? Apache::HTTP_UNAUTHORIZED : Apache::Constants::HTTP_UNAUTHORIZED;
         }
     }
            
     $dbh->disconnect;
-    $r->header_in('Modperl_DBILogin_Password',$sent_pwd);
-    $r->header_in('Modperl_DBILogin_data_source',$attr->{data_source});
-    return OK;
+    $r->headers_in->{'Modperl_DBILogin_Password'} = $sent_pwd;
+    $r->headers_in->{'Modperl_Password'} = $sent_pwd;
+    $r->headers_in->{'Modperl_DBILogin_data_source'} = $attr->{data_source};
+    return MP2 ? Apache::OK : Apache::Constants::OK;
 }
 
 sub authz {
     my $r = shift @_;
-    return OK unless $r->is_initial_req;
+    return (MP2 ? Apache::OK : Apache::Constants::OK)
+        unless $r->is_initial_req;
 
-    my $user = $r->connection->user;
+    my $user = MP2 ? $r->user : $r->connection->user;
 
     my($key,$val);
     my $attr = {};
@@ -87,33 +113,33 @@ sub test_authz {
     my ($res, $sent_pwd) = $r->get_basic_auth_pw;
     return $res if ( $res ); #decline if not Basic
 
-    my $user = $r->connection->user;
+    my $user = MP2 ? $r->user : $r->connection->user;
 
     unless ( $attr->{data_source} ) {
         $r->log_reason("$prefix is missing the source parameter for database connect", $r->uri);
-        return SERVER_ERROR;
+        return MP2 ? Apache::HTTP_INTERNAL_SERVER_ERROR : Apache::Constants::HTTP_INTERNAL_SERVER_ERROR;
     }
 
     my $dbh = DBI->connect($attr->{data_source}, $user, $sent_pwd, {AutoCommit=>0, RaiseError=>0});
     unless( defined $dbh ) {
         $r->log_reason("user $user: $DBI::errstr", $r->uri);
-        return SERVER_ERROR;
+        return MP2 ? Apache::HTTP_INTERNAL_SERVER_ERROR : Apache::Constants::HTTP_INTERNAL_SERVER_ERROR;
     }
 
-    my $authz_result = FORBIDDEN;
+    my $authz_result = MP2 ? Apache::HTTP_FORBIDDEN : Apache::Constants::HTTP_FORBIDDEN;
     my $sth;
     foreach my $requirement ( @{$r->requires} ) {
         my $require = $requirement->{requirement};
         if ( $require eq "valid-user" ) {
-            $authz_result = OK;
+            $authz_result = MP2 ? Apache::OK : Apache::Constants::OK;
         } elsif ( $require =~ s/^user\s+// ) { 
                 foreach my $valid_user (split /\s+/, $require) {
                     if ( $user eq $valid_user ) {
-                        $authz_result = OK;
+                        $authz_result = MP2 ? Apache::OK : Apache::Constants::OK;
                         last;
                     }
                 }
-                if ( $authz_result != OK ) {
+                if ( $authz_result != (MP2 ? Apache::OK : Apache::Constants::OK) ) {
                     my $explaination = <<END;
 <HTML>
 <HEAD><TITLE>Unauthorized</TITLE></HEAD>
@@ -123,19 +149,19 @@ User must be one of these required users: $require
 </BODY>
 </HTML>
 END
-                    $r->custom_response(FORBIDDEN, $explaination);
+                    $r->custom_response(MP2 ? Apache::HTTP_FORBIDDEN : Apache::Constants::HTTP_FORBIDDEN, $explaination);
                     $r->log_reason("user $user: not authorized", $r->uri);
                 }
             } elsif ( $require =~ s/^group\s+// ) {
                     foreach my $group (split /\s+/, $require) {
                         $authz_result = is_member($r, $dbh, $group);
-                        last if ( $authz_result == OK );
-                        if ( $authz_result == SERVER_ERROR ) {
+                        last if ( $authz_result == (MP2 ? Apache::OK : Apache::Constants::OK) );
+                        if ( $authz_result == (MP2 ? Apache::HTTP_INTERNAL_SERVER_ERROR : Apache::Constants::HTTP_INTERNAL_SERVER_ERROR) ) {
                             $r->log_reason("user $user: $@", $r->uri);
-                            return SERVER_ERROR;
+                            return MP2 ? Apache::HTTP_INTERNAL_SERVER_ERROR : Apache::Constants::HTTP_INTERNAL_SERVER_ERROR;
                         }
                     }
-                    if ( $authz_result == FORBIDDEN ) {
+                    if ( $authz_result == (MP2 ? Apache::HTTP_FORBIDDEN : Apache::Constants::HTTP_FORBIDDEN) ) {
                         my $explaination = <<END;
 <HTML>
 <HEAD><TITLE>Unauthorized</TITLE></HEAD>
@@ -145,7 +171,7 @@ User must be member of one of these required groups: $require
 </BODY>
 </HTML>
 END
-                        $r->custom_response(FORBIDDEN, $explaination);
+                        $r->custom_response(MP2 ? Apache::HTTP_FORBIDDEN : Apache::Constants::HTTP_FORBIDDEN, $explaination);
                         $r->log_reason("user $user: not authorized", $r->uri);
                     }
                 }
@@ -180,8 +206,8 @@ Apache::DBILogin - authenticates and authorizes via a DBI connection
  package Apache::DBILogin;
  
  # is_member function for authz handler
- #  expects a request object, database handle, and the group you which to test
- #  returns a valid response code
+ #  expects request object, database handle, and group for which to test
+ #  returns valid response code
  sub is_member {
      my ($r, $dbh, $group) = @_;
  
@@ -190,9 +216,13 @@ Apache::DBILogin - authenticates and authorizes via a DBI connection
          # no, Oracle doesn't support binding in SET ROLE statement
          $sth = $dbh->prepare("SET ROLE $group") or die $DBI::errstr;
      };
-     return SERVER_ERROR if ( $@ );
+     return ( MP2 ? Apache::HTTP_INTERNAL_SERVER_ERROR
+                  : Apache::Constants::HTTP_INTERNAL_SERVER_ERROR ) if ( $@ );
         
-     return ( defined $sth->execute() ) ? OK : FORBIDDEN;
+     return ( defined $sth->execute() ) ? (MP2 ? Apache::OK
+                                               : Apache::Constants::OK)
+                                        : (MP2 ? Apache::HTTP_FORBIDDEN
+                                               : Apache::Constants::HTTP_FORBIDDEN);
  }
 
 =head1 DESCRIPTION

@@ -3,3 +3,4 @@ README
 MANIFEST
 Makefile.PL
 DBILogin.pm
+t/01use.t

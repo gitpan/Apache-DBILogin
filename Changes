@@ -1,5 +1,10 @@
 Changes to Apache-DBILogin
 
+2.01 Fri Dec  3 11:56:24 EST 2004
+	- extensive rework of DBILogin.pm for modperl 2.0 support
+	- Makefile.PL now includes DBI as a prereq
+	- added t/01use.t to satisfy CPAN automated testers
+
 2.0 Wed Feb 21 14:11:42 EST 2001
 	- removed HTTP_MODPERL_PASSWORD environment
 	- replaced default handler sub with authen sub
