@@ -9,6 +9,8 @@ To build and install it, please run
     make
     make install
 
+To cache logins, the module requires Apache::DBI.
+
 This package is Copyright (C) 1997 by John Groenveld. It may be
 copied, used and redistributed under the same terms as perl itself.
 

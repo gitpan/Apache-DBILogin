@@ -1,4 +1,4 @@
-# $Id: DBILogin.pm,v 1.5 1998/11/17 19:10:42 jdg117 Exp $
+# $Id: DBILogin.pm,v 1.6 2000/02/07 21:15:48 jdg117 Exp $
 package Apache::DBILogin;
 use strict;
 use Apache();
@@ -6,7 +6,7 @@ use Apache::Constants qw(OK SERVER_ERROR AUTH_REQUIRED);
 use DBI;
 use vars qw($VERSION);
 
-$VERSION = '1.5';
+$VERSION = '1.6';
 my(%Config) = (
     'Auth_DBI_data_source' => '',
     'Auth_DBI_authz_command' => '',
