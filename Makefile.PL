@@ -51,5 +51,4 @@ WriteMakefile(
    NAME          => 'Apache::DBILogin',
    DISTNAME      => 'Apache-DBILogin',
    VERSION_FROM  => 'lib/Apache/DBILogin.pm',
-   'dist'        => { COMPRESS => 'gzip -9f', SUFFIX => 'gz', },
 );

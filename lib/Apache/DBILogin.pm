@@ -1,19 +1,20 @@
-# $Id: DBILogin.pm,v 1.1 1997/07/07 02:31:31 jdg117 Exp jdg117 $
+# $Id: DBILogin.pm,v 1.2 1997/08/30 19:03:49 jdg117 Exp $
 package Apache::DBILogin;
 use strict;
 use Apache();
-use Apache::Constants qw(OK AUTH_REQUIRED);
-use Apache::DBI;
+use Apache::Constants qw(OK SERVER_ERROR AUTH_REQUIRED);
+use DBI;
 use HTTPD::UserAdmin();
 use vars qw($VERSION);
 
-$VERSION = '1.1';
+$VERSION = '1.2';
 my(%Config) = (
-    AuthDBIDB => "",
-    AuthDBIDriver => "",
+    'Auth_DBI_data_source' => '',
 );
+my $prefix = "Apache::DBILogin";
 
 sub handler {
+#print STDERR "Apache::DBILogin--GATEWAY_INTERFACE=$ENV{GATEWAY_INTERFACE}\n";
     my($r) = @_;
     my($key,$val);
     my $attr = {
@@ -21,13 +22,10 @@ sub handler {
     };
     while(($key,$val) = each %Config) {
         $val = $r->dir_config($key) || $val;
-        $key =~ s/^AuthDBI//; 
+        $key =~ s/^Auth_DBI_//;
         $attr->{$key} = $val;
     }
-    $attr->{DB} = delete $attr->{User} if #bleh, inconsistent
-        $attr->{Driver} eq "mSQL";
     
-    print STDERR $attr->{User},"foo\n";
     return check($r, $attr);
 }
  
@@ -40,10 +38,14 @@ sub check {
 
     my $user = $r->connection->user;
 
-    print STDERR $user,"\t",$sent_pwd,"\t",$attr->{DB},"\t",$attr->{Driver},"\n";
+#print STDERR $user,"\t",$sent_pwd,"\t",$attr->{data_source},"\n";
 
-    my $drh = DBI->install_driver( $attr->{Driver} );
-    my $dbh = $drh->connect($attr->{DB},$user,$sent_pwd);
+    unless ( $attr->{data_source} ) {
+        $r->log_reason("$prefix is missing the source parameter for database connect", $r->uri);
+        return SERVER_ERROR;
+    }
+
+    my $dbh = DBI->connect($attr->{data_source},$user,$sent_pwd);
     unless( defined $dbh ) {
         $r->log_reason("user $user: $DBI::errstr", $r->uri);
         $r->note_basic_auth_failure;
@@ -81,9 +83,7 @@ PerlAuthenHandler Apache::DBILogin::handler
 
 SetHandler perl-script
  
-PerlSetVar AuthDBIDB SQLNetAlias
-
-PerlSetVar AuthDBIDriver Oracle
+PerlSetVar Auth_DBI_data_source dbi:Oracle:SQLNetAlias
 
 Options Indexes FollowSymLinks ExecCGI
 
@@ -103,8 +103,12 @@ satisfy all
 
 =cut
 
+=head1 SEE ALSO
+
+mod_perl(1), Apache::DBI(3), and Apache::AuthenDBI(3)
+
 =head1 AUTHOR
 
-John Groenveld E<lt>groenvel@cse.psu.eduE<gt>
+John Groenveld E<lt>groenveld@acm.orgE<gt>
 
 =cut
