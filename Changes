@@ -1,5 +1,10 @@
 Changes to Apache-DBILogin
 
+2.04 Fri Apr 15 14:48:16 EDT 2005
+	- made changes to DBILogin.pm per new API
+	  <URL:http://perl.apache.org/docs/2.0/rename.html>
+	- removed mod_perl prereq from Makefile.PL as it implies MP1
+
 2.03 Wed Dec  8 01:36:24 EST 2004
 	- fixed $VERSION, why must it be defined above "use modperl" ?
 
