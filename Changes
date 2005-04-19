@@ -1,5 +1,9 @@
 Changes to Apache-DBILogin
 
+2.05 Tue Apr 19 08:39:20 EDT 2005
+	- documentation fixes per Ron Savage's bug report:
+	  environment variables are prefixed with HTTP_MODPERL_
+
 2.04 Fri Apr 15 14:48:16 EDT 2005
 	- made changes to DBILogin.pm per new API
 	  <URL:http://perl.apache.org/docs/2.0/rename.html>

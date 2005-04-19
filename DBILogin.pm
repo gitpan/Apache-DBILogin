@@ -3,7 +3,7 @@ package Apache::DBILogin;
 use strict;
 
 use vars qw($VERSION);
-$VERSION = '2.04';
+$VERSION = '2.05';
 
 # setting the constants to help identify which version of mod_perl
 # is installed
@@ -257,8 +257,8 @@ B<HTTP_MODPERL_DBILOGIN_DATA_SOURCE>.
  use CGI;
  use DBI;
  my $name = $ENV{REMOTE_USER};
- my $password = $ENV{HTTP_DBILOGIN_PASSWORD};
- my $data_source = $ENV{HTTP_DBILOGIN_DATA_SOURCE};
+ my $password = $ENV{HTTP_MODPERL_DBILOGIN_PASSWORD};
+ my $data_source = $ENV{HTTP_MODPERL_DBILOGIN_DATA_SOURCE};
  my $dbh = DBI->connect($data_source, $name, $password)
  	or die "$DBI::err: $DBI::errstr\n";
  ...
