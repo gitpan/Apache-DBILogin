@@ -3,7 +3,7 @@ package Apache::DBILogin;
 use strict;
 
 use vars qw($VERSION);
-$VERSION = '2.05';
+$VERSION = '2.06';
 
 # setting the constants to help identify which version of mod_perl
 # is installed
@@ -40,6 +40,10 @@ my $prefix = "Apache::DBILogin";
 
 sub authen {
     my $r = shift @_;
+ 
+    my ($res, $sent_pwd) = $r->get_basic_auth_pw;
+    return $res if ( $res ); #decline if not Basic
+
     return (MP2 ? Apache2::Const::OK : Apache::Constants::OK)
         unless $r->is_initial_req;
 
@@ -51,14 +55,11 @@ sub authen {
         $attr->{$key} = $val;
     }
     
-    return test_authen($r, $attr);
+    return test_authen($r, $attr, $sent_pwd);
 }
  
 sub test_authen {
-    my($r, $attr) = @_;
- 
-    my ($res, $sent_pwd) = $r->get_basic_auth_pw;
-    return $res if ( $res ); #decline if not Basic
+    my($r, $attr, $sent_pwd) = @_;
 
     my $user = MP2 ? $r->user : $r->connection->user;
 
@@ -92,6 +93,10 @@ sub test_authen {
 
 sub authz {
     my $r = shift @_;
+
+    my ($res, $sent_pwd) = $r->get_basic_auth_pw;
+    return $res if ( $res ); #decline if not Basic
+
     return (MP2 ? Apache2::Const::OK : Apache::Constants::OK)
         unless $r->is_initial_req;
 
@@ -105,14 +110,11 @@ sub authz {
         $attr->{$key} = $val;
     }
     
-    return test_authz($r, $attr);
+    return test_authz($r, $attr, $sent_pwd);
 }
 
 sub test_authz {
-    my($r, $attr) = @_;
-
-    my ($res, $sent_pwd) = $r->get_basic_auth_pw;
-    return $res if ( $res ); #decline if not Basic
+    my($r, $attr, $sent_pwd) = @_;
 
     my $user = MP2 ? $r->user : $r->connection->user;
 
